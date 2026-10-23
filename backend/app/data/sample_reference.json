@@ -1,0 +1,17 @@
+{
+  "brand_guidelines": [
+    {"id": "VOICE-01", "text": "Use clear, friendly language that a non-expert can understand."},
+    {"id": "VOICE-02", "text": "Avoid hype, superlatives and guarantees (e.g. 'best', 'revolutionary', 'guaranteed') unless backed by an approved fact."},
+    {"id": "VOICE-03", "text": "Speak directly to the reader using 'you' and prefer active voice."}
+  ],
+  "approved_terms": [
+    {"id": "TERM01", "preferred": "customer", "avoid": ["consumer", "end-user"]},
+    {"id": "TERM02", "preferred": "sign in", "avoid": ["log in", "login"]},
+    {"id": "TERM03", "preferred": "email", "avoid": ["e-mail"]}
+  ],
+  "approved_facts": [
+    {"id": "FACT01", "text": "The service is available in 10 regions"},
+    {"id": "FACT02", "text": "Customer support is available 24 hours a day via chat"},
+    {"id": "FACT03", "text": "The company was founded in 2018"}
+  ]
+}
