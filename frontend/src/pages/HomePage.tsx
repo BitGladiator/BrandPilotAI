@@ -22,7 +22,7 @@ export const HomePage: React.FC = () => {
         <div className="container">
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'minmax(320px, 1.05fr) minmax(340px, 1.25fr)',
+            gridTemplateColumns: 'minmax(0, 1.05fr) minmax(0, 1.25fr)',
             gap: '48px',
             alignItems: 'center',
           }} className="hero-grid">

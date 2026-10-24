@@ -325,7 +325,7 @@ export const WorkspacePage: React.FC = () => {
         {/* Main Grid: Left (Draft & Findings) + Right (Reference Truth) */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: showReferenceDrawer ? 'minmax(400px, 1.4fr) minmax(320px, 1fr)' : '1fr',
+          gridTemplateColumns: showReferenceDrawer ? 'minmax(0, 1.4fr) minmax(0, 1fr)' : '1fr',
           gap: '24px',
           alignItems: 'start',
         }} className="workspace-grid">

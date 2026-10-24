@@ -137,14 +137,15 @@ export const AtelierPreview: React.FC = () => {
 
         <div style={{
           fontFamily: 'var(--font-serif)',
-          fontSize: '1.1875rem',
-          lineHeight: 1.8,
+          fontSize: '1.125rem',
+          lineHeight: 1.75,
           color: 'var(--color-text-primary)',
           backgroundColor: '#FAF8F5',
           border: '1px solid var(--color-border-subtle)',
           borderRadius: 'var(--radius-md)',
           padding: '16px 18px',
           marginBottom: '18px',
+          wordBreak: 'break-word',
         }}>
           “{draftText}”
         </div>

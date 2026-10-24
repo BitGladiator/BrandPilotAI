@@ -159,9 +159,7 @@ export const ReferenceManager: React.FC<ReferenceManagerProps> = ({
       </div>
 
       {/* Tabs */}
-      <div style={{
-        display: 'flex',
-        gap: '8px',
+      <div className="tabs-scroll-container" style={{
         borderBottom: '1px solid var(--color-border)',
         marginBottom: '16px',
       }}>
@@ -232,7 +230,7 @@ export const ReferenceManager: React.FC<ReferenceManagerProps> = ({
       {/* Tab 1: Terms */}
       {activeTab === 'terms' && (
         <div>
-          <form onSubmit={handleAddTerm} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', marginBottom: '14px' }}>
+          <form onSubmit={handleAddTerm} className="ref-form-grid">
             <input
               type="text"
               placeholder="Preferred (e.g. customer)"
@@ -301,7 +299,7 @@ export const ReferenceManager: React.FC<ReferenceManagerProps> = ({
       {/* Tab 2: Facts */}
       {activeTab === 'facts' && (
         <div>
-          <form onSubmit={handleAddFact} style={{ display: 'grid', gridTemplateColumns: '100px 1fr auto', gap: '8px', marginBottom: '14px' }}>
+          <form onSubmit={handleAddFact} className="ref-form-grid-3">
             <input
               type="text"
               placeholder="FACT04"
@@ -374,7 +372,7 @@ export const ReferenceManager: React.FC<ReferenceManagerProps> = ({
       {/* Tab 3: Guidelines */}
       {activeTab === 'guidelines' && (
         <div>
-          <form onSubmit={handleAddGuideline} style={{ display: 'grid', gridTemplateColumns: '100px 1fr auto', gap: '8px', marginBottom: '14px' }}>
+          <form onSubmit={handleAddGuideline} className="ref-form-grid-3">
             <input
               type="text"
               placeholder="VOICE-04"
