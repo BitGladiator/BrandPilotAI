@@ -1,47 +1,51 @@
-"""AI review module (tone/voice + claims/factual consistency).
+"""AI review module (Groq Cloud / OpenAI-compatible brand governance reviewer).
 
-Karan owns this file's prompt/model choices. The backend only relies on:
-
-    await run_ai_review(draft, guidelines, facts, settings) -> list[Finding]
-    raises AIServiceError on any provider/parse problem (never crashes the API)
-
-Providers (AI_PROVIDER):
-  - "openai_compatible": any OpenAI-style /chat/completions endpoint
-  - "mock": offline heuristic reviewer so the app runs without an API key
+Supports:
+  - "groq" / "openai_compatible": calls Groq Cloud or OpenAI endpoint
+  - "mock": offline heuristic reviewer for automated tests without API keys
 """
 import json
 import re
-from typing import Any
+from typing import Any, Optional
 
 import httpx
 
-from app.config import Settings
-from app.schemas.review import ApprovedFact, Finding, Guideline
+from app.config import Settings, get_settings
+from app.schemas.review import ApprovedFact, ApprovedTerm, Finding, Guideline
 
 
 class AIServiceError(Exception):
     """Safe, human-readable error raised by the AI layer."""
 
 
-SYSTEM_PROMPT = """You are a brand-governance reviewer. You review ONLY the DRAFT provided, using ONLY the supplied GUIDELINES and APPROVED FACTS.
+SYSTEM_PROMPT = """You are BrandPilot's AI brand-governance reviewer. You review the provided DRAFT against the supplied GUIDELINES, APPROVED TERMS, and APPROVED FACTS.
+
+Categories to inspect:
+1. "Terminology": Check if the draft uses words in the "Avoid" list of APPROVED TERMS. Recommend the preferred term and cite the term ID in evidence_ids.
+2. "Claims": Check if statements in the draft contradict any APPROVED FACTS (severity "High", cite the fact ID). If a factual claim has no supporting approved fact, flag it with confidence "low" and evidence_ids [].
+3. "Tone": Check if the draft conflicts with voice/tone GUIDELINES (e.g. superlatives, hype, clarity, tone). Cite the guideline ID.
+4. "Accessibility": Check for vague link copy (e.g. "click here").
 
 Rules:
-- Do not invent brand rules. Only cite guideline IDs that appear in the input.
-- Never state that a claim is verified or false unless an approved fact clearly supports or contradicts it.
-- If a factual claim has no supporting approved fact, flag it as needing reviewer verification with confidence "low" and evidence_ids [].
-- Check two categories only: "Tone" (voice/tone vs guidelines) and "Claims" (factual consistency/unsupported claims vs approved facts).
+- Do not invent brand rules. Only cite IDs that appear in the input.
 - "excerpt" MUST be copied verbatim from the draft.
-- Suggestions are optional proposals; a human makes the final decision.
+- Suggestions are actionable proposals; a human makes the final decision.
 - If there are no issues, return {"findings": []}.
 
 Respond with ONLY valid JSON, no markdown, in this shape:
-{"findings":[{"category":"Tone|Claims","severity":"Low|Medium|High","excerpt":"verbatim text from draft","explanation":"why it may conflict","suggestion":"possible rewrite","evidence_ids":["VOICE-01"],"confidence":"low|medium|high"}]}"""
+{"findings":[{"category":"Terminology|Tone|Claims|Accessibility|Other","severity":"Low|Medium|High","excerpt":"verbatim text from draft","explanation":"why it conflicts","suggestion":"proposed rewrite","evidence_ids":["ID"],"confidence":"low|medium|high"}]}"""
 
 
-def build_user_prompt(draft: str, guidelines: list[Guideline], facts: list[ApprovedFact]) -> str:
+def build_user_prompt(
+    draft: str,
+    guidelines: list[Guideline],
+    facts: list[ApprovedFact],
+    terms: Optional[list[ApprovedTerm]] = None,
+) -> str:
     g = "\n".join(f"[{x.id}] {x.text}" for x in guidelines) or "(none supplied)"
     f = "\n".join(f"[{x.id}] {x.text}" for x in facts) or "(none supplied)"
-    return f"GUIDELINES:\n{g}\n\nAPPROVED FACTS:\n{f}\n\nDRAFT:\n\"\"\"\n{draft}\n\"\"\""
+    t = "\n".join(f"[{x.id or 'TERM'}] Preferred: \"{x.preferred}\", Avoid: {', '.join(x.avoid)}" for x in (terms or [])) or "(none supplied)"
+    return f"GUIDELINES:\n{g}\n\nAPPROVED TERMS:\n{t}\n\nAPPROVED FACTS:\n{f}\n\nDRAFT:\n\"\"\"\n{draft}\n\"\"\""
 
 
 # ---------- output parsing / grounding ----------
@@ -64,14 +68,18 @@ def _extract_json(raw: str) -> Any:
 
 
 def parse_model_output(
-    raw: str, draft: str, guidelines: list[Guideline], facts: list[ApprovedFact]
+    raw: str,
+    draft: str,
+    guidelines: list[Guideline],
+    facts: list[ApprovedFact],
+    terms: Optional[list[ApprovedTerm]] = None,
 ) -> list[Finding]:
     data = _extract_json(raw)
     items = data.get("findings") if isinstance(data, dict) else data
     if not isinstance(items, list):
         raise AIServiceError("The AI service returned an unexpected response format.")
 
-    known_ids = {g.id for g in guidelines} | {f.id for f in facts}
+    known_ids = {g.id for g in guidelines} | {f.id for f in facts} | {t.id for t in (terms or []) if t.id}
     draft_lower = draft.lower()
     findings: list[Finding] = []
 
@@ -83,14 +91,18 @@ def parse_model_output(
         if not excerpt or not explanation:
             continue
         pos = draft_lower.find(excerpt.lower())
-        if pos == -1:  # excerpt not in draft -> likely hallucinated, drop it
+        if pos == -1:  # excerpt not in draft -> drop (anti-hallucination)
             continue
         excerpt = draft[pos : pos + len(excerpt)]
 
         category = str(item.get("category", "")).strip().title()
-        if category.startswith("Claim") or category.startswith("Fact"):
+        if category.startswith("Term"):
+            category = "Terminology"
+        elif category.startswith("Claim") or category.startswith("Fact"):
             category = "Claims"
-        elif category not in {"Tone", "Claims"}:
+        elif category.startswith("Access"):
+            category = "Accessibility"
+        elif category not in {"Tone", "Claims", "Terminology", "Accessibility"}:
             category = "Tone" if category in {"Voice", "Style"} else "Other"
 
         severity = str(item.get("severity", "Medium")).strip().title()
@@ -115,14 +127,21 @@ def parse_model_output(
     return findings
 
 
-# ---------- real provider ----------
+# ---------- Groq / OpenAI provider ----------
 
 async def _call_openai_compatible(messages: list[dict], s: Settings) -> str:
     if not s.ai_api_key:
-        raise AIServiceError("AI_API_KEY is not configured on the server.")
-    payload = {"model": s.ai_model, "messages": messages, "temperature": 0.1,
-               "response_format": {"type": "json_object"}}
-    headers = {"Authorization": f"Bearer {s.ai_api_key}", "Content-Type": "application/json"}
+        raise AIServiceError("Groq API key is not configured. Please add GROQ_API_KEY in backend/.env.")
+    payload = {
+        "model": s.ai_model,
+        "messages": messages,
+        "temperature": 0.1,
+        "response_format": {"type": "json_object"},
+    }
+    headers = {
+        "Authorization": f"Bearer {s.ai_api_key}",
+        "Content-Type": "application/json",
+    }
     last_err = "unknown error"
     for _ in range(s.ai_max_retries + 1):
         try:
@@ -135,20 +154,26 @@ async def _call_openai_compatible(messages: list[dict], s: Settings) -> str:
                 last_err = f"the AI provider had an internal error ({r.status_code})"
                 continue
             if r.status_code in (401, 403):
-                raise AIServiceError("The AI provider rejected the server's credentials.")
+                raise AIServiceError("The Groq/AI provider rejected the credentials. Please verify your GROQ_API_KEY.")
             if r.status_code >= 400:
-                raise AIServiceError(f"The AI provider rejected the request ({r.status_code}).")
+                err_msg = ""
+                try:
+                    err_json = r.json()
+                    err_msg = err_json.get("error", {}).get("message", "")
+                except Exception:
+                    pass
+                raise AIServiceError(f"The AI provider rejected the request ({r.status_code}): {err_msg or r.text[:150]}.")
             return r.json()["choices"][0]["message"]["content"]
         except httpx.TimeoutException:
             last_err = "the AI provider timed out"
-        except httpx.HTTPError:
-            last_err = "the AI provider could not be reached"
+        except httpx.HTTPError as exc:
+            last_err = f"could not reach {s.ai_base_url}: {str(exc)}"
         except (KeyError, IndexError, ValueError):
             raise AIServiceError("The AI provider returned an unexpected response.")
     raise AIServiceError(f"AI review failed: {last_err}.")
 
 
-# ---------- offline mock reviewer ----------
+# ---------- offline mock reviewer for testing without keys ----------
 
 _HYPE = re.compile(
     r"\b(best|revolutionary|world-class|best-in-class|unbeatable|game-changing|"
@@ -195,15 +220,36 @@ def _mock_review(draft: str, guidelines: list[Guideline], facts: list[ApprovedFa
 # ---------- public entry point ----------
 
 async def run_ai_review(
-    draft: str, guidelines: list[Guideline], facts: list[ApprovedFact], settings: Settings
+    draft: str,
+    guidelines: list[Guideline],
+    facts: list[ApprovedFact],
+    *args,
+    **kwargs,
 ) -> list[Finding]:
+    # Handle variable arguments seamlessly: (draft, guidelines, facts, terms, settings) or (draft, guidelines, facts, settings)
+    terms: list[ApprovedTerm] = []
+    settings: Optional[Settings] = None
+
+    for arg in args:
+        if isinstance(arg, Settings):
+            settings = arg
+        elif isinstance(arg, list):
+            terms = arg
+
+    if settings is None:
+        settings = kwargs.get("settings") or get_settings()
+    if not terms and "terms" in kwargs:
+        terms = kwargs["terms"]
+
     provider = settings.ai_provider
     if provider == "mock":
         raw = _mock_review(draft, guidelines, facts)
-    elif provider == "openai_compatible":
-        messages = [{"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": build_user_prompt(draft, guidelines, facts)}]
+    elif provider in {"openai_compatible", "groq"}:
+        messages = [
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": build_user_prompt(draft, guidelines, facts, terms)},
+        ]
         raw = await _call_openai_compatible(messages, settings)
     else:
         raise AIServiceError(f"Unknown AI_PROVIDER '{provider}'.")
-    return parse_model_output(raw, draft, guidelines, facts)
+    return parse_model_output(raw, draft, guidelines, facts, terms)

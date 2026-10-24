@@ -1,4 +1,4 @@
-"""Orchestrates deterministic rules + AI review into one response."""
+"""Orchestrates Groq AI review and fallback rules into one response."""
 from app.config import Settings
 from app.rules.accessibility import check_accessibility
 from app.rules.terminology import check_terminology
@@ -22,14 +22,24 @@ def _resolve_reference(req: ReviewRequest):
 
 
 def _merge(rule_findings: list[Finding], ai_findings: list[Finding]) -> list[Finding]:
-    """Combine, drop AI duplicates of rule findings, order by position, assign IDs."""
-    seen = {(f.excerpt.lower(), f.category) for f in rule_findings}
-    combined = list(rule_findings)
+    """Combine findings, prioritizing AI model evaluations, drop duplicates, order by position, assign IDs."""
+    seen = set()
+    combined: list[Finding] = []
+    
+    # AI findings from the model take priority
     for f in ai_findings:
-        if (f.excerpt.lower(), f.category) in seen:
-            continue
-        seen.add((f.excerpt.lower(), f.category))
-        combined.append(f)
+        key = (f.excerpt.lower(), f.category)
+        if key not in seen:
+            seen.add(key)
+            combined.append(f)
+
+    # Any additional fallback rule findings
+    for f in rule_findings:
+        key = (f.excerpt.lower(), f.category)
+        if key not in seen:
+            seen.add(key)
+            combined.append(f)
+
     combined.sort(key=lambda f: (f.start if f.start is not None else 10**9))
     for i, f in enumerate(combined, start=1):
         f.id = f"F-{i:03d}"
@@ -40,29 +50,37 @@ async def review_draft(req: ReviewRequest, settings: Settings) -> ReviewResponse
     guidelines, terms, facts, ref_source = _resolve_reference(req)
     draft = req.draft_text
 
-    rule_findings = check_terminology(draft, terms)
-    if settings.enable_accessibility_checks:
-        rule_findings += check_accessibility(draft)
-
     ai_findings: list[Finding] = []
     ai_status = "skipped"
     warnings: list[str] = []
+
     if settings.ai_enabled:
         try:
-            ai_findings = await run_ai_review(draft, guidelines, facts, settings)
+            ai_findings = await run_ai_review(draft, guidelines, facts, terms, settings)
             ai_status = "ok"
         except AIServiceError as exc:
             if settings.ai_required:
                 raise
             ai_status = "unavailable"
-            warnings.append(f"AI review was unavailable ({exc}) Showing rule-based results only.")
+            warnings.append(f"AI review was unavailable ({exc})")
+
+    # If AI produced findings, they are the primary output from the Groq model.
+    # Rule findings act as safety net if AI was skipped or unavailable.
+    rule_findings: list[Finding] = []
+    if ai_status != "ok" or not ai_findings:
+        rule_findings = check_terminology(draft, terms)
+        if settings.enable_accessibility_checks:
+            rule_findings += check_accessibility(draft)
 
     findings = _merge(rule_findings, ai_findings)
 
+    ai_count = len([f for f in findings if f.source == "ai"])
+    rule_count = len(findings) - ai_count
+
     if findings:
-        summary = (f"Review completed: {len(findings)} possible issue(s) found "
-                   f"({len(rule_findings)} rule-based, {len(findings) - len(rule_findings)} AI-assisted). "
-                   "Please review each suggestion before approving.")
+        summary = (f"Review completed: {len(findings)} possible issue(s) identified "
+                   f"({ai_count} AI model analyzed, {rule_count} rule-verified). "
+                   "Please review each advisory proposal before approving.")
     elif ai_status == "unavailable":
         summary = "No rule-based issues found, but AI review was unavailable. Human review is still required."
     else:

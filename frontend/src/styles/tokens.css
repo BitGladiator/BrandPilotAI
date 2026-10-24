@@ -1,0 +1,77 @@
+:root {
+  /* Brand Strategy Atelier Color Palette */
+  --color-bg: #F7F4EF;
+  --color-surface: #FFFEFC;
+  --color-surface-subtle: #FDFBF8;
+  --color-surface-hover: #F8F3ED;
+
+  --color-text-primary: #292421;
+  --color-text-secondary: #706860;
+  --color-text-muted: #8E857C;
+  --color-text-inverse: #FFFEFC;
+
+  --color-border: #E5DED5;
+  --color-border-subtle: #EFE9E1;
+  --color-border-dark: #C8BFB4;
+
+  /* Primary Brand: Deep Burgundy */
+  --color-burgundy: #702F3D;
+  --color-burgundy-hover: #582330;
+  --color-burgundy-active: #471B26;
+  --color-burgundy-subtle: #F6EDED;
+  --color-burgundy-border: #E2CFD3;
+
+  /* Secondary Accent: Muted Copper */
+  --color-copper: #B17A56;
+  --color-copper-hover: #986443;
+  --color-copper-subtle: #F9F2ED;
+  --color-copper-border: #E8D4C5;
+
+  /* Editorial & Feedback Accents */
+  --color-rose-bg: #F3E9E8;
+  --color-neutral-info: #F0ECE6;
+  --color-error: #A43D35;
+  --color-error-bg: #FDF2F1;
+  --color-error-border: #F1CECB;
+  --color-warning: #B37D2A;
+  --color-warning-bg: #FDF9F0;
+  --color-warning-border: #EDE0C7;
+  --color-success: #3F6E53;
+  --color-success-bg: #F2F7F4;
+  --color-success-border: #CFE3D7;
+
+  /* Typography Stacks */
+  --font-serif: 'Newsreader', Georgia, 'Iowan Old Style', serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', Menlo, Monaco, Consolas, monospace;
+
+  /* Radii (restrained, 4px - 8px) */
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius-md: 7px;
+  --radius-lg: 10px;
+  --radius-pill: 9999px;
+
+  /* Shadows (restrained, subtle) */
+  --shadow-xs: 0 1px 2px rgba(41, 36, 33, 0.04);
+  --shadow-sm: 0 1px 3px rgba(41, 36, 33, 0.05), 0 3px 8px rgba(41, 36, 33, 0.02);
+  --shadow-md: 0 3px 12px rgba(41, 36, 33, 0.06), 0 1px 4px rgba(41, 36, 33, 0.03);
+  --shadow-lg: 0 8px 24px rgba(41, 36, 33, 0.08), 0 2px 6px rgba(41, 36, 33, 0.04);
+
+  /* Spacing */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+
+  /* Layout Max-Widths */
+  --container-max: 1240px;
+  --container-editorial: 960px;
+}
