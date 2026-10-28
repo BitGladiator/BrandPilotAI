@@ -76,6 +76,10 @@ export const AtelierPreview: React.FC = () => {
       borderRadius: 'var(--radius-lg)',
       boxShadow: 'var(--shadow-md)',
       overflow: 'hidden',
+      width: '100%',
+      maxWidth: '100%',
+      minWidth: 0,
+      boxSizing: 'border-box',
     }}>
       {/* 1. Header Toolbar */}
       <div style={{
@@ -83,23 +87,28 @@ export const AtelierPreview: React.FC = () => {
         flexWrap: 'wrap',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: '12px 18px',
+        padding: '12px 14px',
         backgroundColor: 'var(--color-surface-subtle)',
         borderBottom: '1px solid var(--color-border)',
         gap: '8px',
+        minWidth: 0,
+        maxWidth: '100%',
+        boxSizing: 'border-box',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', minWidth: 0 }}>
           <span style={{
             width: '8px',
             height: '8px',
             borderRadius: '50%',
             backgroundColor: 'var(--color-copper)',
+            flexShrink: 0,
           }} />
           <span style={{
             fontFamily: 'var(--font-serif)',
             fontSize: '0.9375rem',
             fontWeight: 600,
             color: 'var(--color-text-primary)',
+            whiteSpace: 'nowrap',
           }}>
             Brand Strategy Canvas
           </span>
@@ -123,7 +132,7 @@ export const AtelierPreview: React.FC = () => {
       </div>
 
       {/* 2. Editorial Manuscript Preview */}
-      <div style={{ padding: '22px 24px 18px' }}>
+      <div style={{ padding: '22px 24px 18px' }} className="preview-manuscript-inner">
         <div style={{
           fontSize: '0.6875rem',
           fontWeight: 700,
@@ -146,18 +155,18 @@ export const AtelierPreview: React.FC = () => {
           padding: '16px 18px',
           marginBottom: '18px',
           wordBreak: 'break-word',
-        }}>
+        }} className="preview-quote-box">
           “{draftText}”
         </div>
 
         {/* 3. Finding Tabs */}
         {findings.length > 0 && (
-          <div style={{
+          <div className="tabs-scroll-container" style={{
             display: 'flex',
             gap: '8px',
             marginBottom: '12px',
             overflowX: 'auto',
-            paddingBottom: '2px',
+            paddingBottom: '4px',
           }}>
             {findings.map((finding) => {
               const isSelected = selectedFindingId === finding.id;
@@ -279,7 +288,7 @@ export const AtelierPreview: React.FC = () => {
             </p>
 
             {activeFinding.suggestion && (
-              <div style={{
+              <div className="preview-suggestion-flex" style={{
                 display: 'flex',
                 flexWrap: 'wrap',
                 alignItems: 'center',
@@ -287,8 +296,11 @@ export const AtelierPreview: React.FC = () => {
                 gap: '10px',
                 paddingTop: '10px',
                 borderTop: '1px solid var(--color-border-subtle)',
+                width: '100%',
+                minWidth: 0,
+                boxSizing: 'border-box',
               }}>
-                <div style={{ fontSize: '0.8125rem' }}>
+                <div style={{ fontSize: '0.8125rem', wordBreak: 'break-word', minWidth: 0, flex: 1 }}>
                   <span style={{ color: 'var(--color-text-muted)', marginRight: '6px' }}>Proposed Suggestion:</span>
                   <strong style={{ color: 'var(--color-burgundy)', fontFamily: 'var(--font-sans)' }}>
                     "{activeFinding.suggestion}"
@@ -297,11 +309,13 @@ export const AtelierPreview: React.FC = () => {
 
                 <button
                   type="button"
-                  className="btn btn-sm btn-primary"
+                  className="btn btn-sm btn-primary preview-suggestion-btn"
                   onClick={() => handleApplySuggestion(activeFinding)}
                   style={{
                     fontSize: '0.75rem',
-                    padding: '4px 10px',
+                    padding: '6px 12px',
+                    minHeight: '34px',
+                    whiteSpace: 'nowrap',
                   }}
                 >
                   <span>Apply Correction</span>

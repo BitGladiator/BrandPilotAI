@@ -156,25 +156,17 @@ export const DraftEditor: React.FC<DraftEditorProps> = ({
   };
 
   return (
-    <div className="card" style={{ padding: '20px' }}>
+    <div className="card" style={{ padding: '20px', width: '100%', maxWidth: '100%', minWidth: 0, boxSizing: 'border-box' }}>
       {/* Editor Header Bar */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '12px',
-        marginBottom: '14px',
-        paddingBottom: '12px',
-        borderBottom: '1px solid var(--color-border-subtle)',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+      <div className="draft-editor-header">
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <span style={{
             fontSize: '0.8125rem',
             fontWeight: 600,
             letterSpacing: '0.04em',
             textTransform: 'uppercase',
             color: 'var(--color-text-primary)',
+            whiteSpace: 'nowrap',
           }}>
             Draft Copy
           </span>
@@ -185,6 +177,7 @@ export const DraftEditor: React.FC<DraftEditorProps> = ({
             borderRadius: 'var(--radius-sm)',
             padding: '2px',
             border: '1px solid var(--color-border)',
+            minWidth: 0,
           }}>
             <button
               type="button"
@@ -202,7 +195,7 @@ export const DraftEditor: React.FC<DraftEditorProps> = ({
               style={{ padding: '3px 8px', fontSize: '0.75rem' }}
             >
               <Eye size={12} />
-              <span>Annotated Inspector ({findings.length})</span>
+              <span>Inspector ({findings.length})</span>
             </button>
           </div>
         </div>
@@ -265,7 +258,7 @@ export const DraftEditor: React.FC<DraftEditorProps> = ({
       )}
 
       {/* Editor Footer: Character Counter + Review Action */}
-      <div style={{
+      <div className="draft-editor-footer" style={{
         display: 'flex',
         flexWrap: 'wrap',
         alignItems: 'center',

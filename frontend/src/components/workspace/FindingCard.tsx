@@ -72,15 +72,8 @@ export const FindingCard: React.FC<FindingCardProps> = ({
       }}
     >
       {/* Top Header: ID, Category, Severity, Source */}
-      <div style={{
-        display: 'flex',
-        flexWrap: 'wrap',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '8px',
-        marginBottom: '10px',
-      }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+      <div className="finding-card-header">
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
           <span style={{
             fontFamily: 'var(--font-mono)',
             fontSize: '0.75rem',
@@ -97,7 +90,7 @@ export const FindingCard: React.FC<FindingCardProps> = ({
           </span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
           <span
             className="badge badge-neutral"
             style={{ fontSize: '0.6875rem' }}
@@ -179,17 +172,7 @@ export const FindingCard: React.FC<FindingCardProps> = ({
 
       {/* Suggestion & Action Area */}
       {finding.suggestion && (
-        <div style={{
-          backgroundColor: 'var(--color-surface-subtle)',
-          border: '1px dashed var(--color-border-dark)',
-          borderRadius: 'var(--radius-sm)',
-          padding: '10px 12px',
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '10px',
-        }}>
+        <div className="finding-suggestion-box">
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8125rem' }}>
             <span style={{ color: 'var(--color-copper-hover)', fontWeight: 600 }}>Suggested:</span>
             <span style={{

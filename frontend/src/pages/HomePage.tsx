@@ -12,10 +12,10 @@ import {
 
 export const HomePage: React.FC = () => {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '80px', paddingBottom: '80px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(48px, 8vw, 80px)', paddingBottom: '80px' }}>
       {/* 1. HERO SECTION */}
       <section style={{
-        paddingTop: '64px',
+        paddingTop: 'clamp(28px, 5vw, 64px)',
         paddingBottom: '24px',
         borderBottom: '1px solid var(--color-border-subtle)',
       }}>
@@ -23,16 +23,17 @@ export const HomePage: React.FC = () => {
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'minmax(0, 1.05fr) minmax(0, 1.25fr)',
-            gap: '48px',
+            gap: '40px',
             alignItems: 'center',
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
           }} className="hero-grid">
             {/* Left Column: Editorial Copy */}
-            <div>
-             
-
+            <div style={{ minWidth: 0, maxWidth: '100%', width: '100%' }}>
               <h1 style={{
                 fontFamily: 'var(--font-serif)',
-                fontSize: 'clamp(2.25rem, 4.5vw, 3.25rem)',
+                fontSize: 'clamp(2rem, 4.5vw, 3.25rem)',
                 fontWeight: 600,
                 letterSpacing: '-0.02em',
                 lineHeight: 1.15,
@@ -43,7 +44,7 @@ export const HomePage: React.FC = () => {
               </h1>
 
               <p style={{
-                fontSize: '1.0625rem',
+                fontSize: 'clamp(0.9375rem, 2vw, 1.0625rem)',
                 lineHeight: 1.65,
                 color: 'var(--color-text-secondary)',
                 marginBottom: '32px',
@@ -59,7 +60,7 @@ export const HomePage: React.FC = () => {
                 alignItems: 'center',
                 gap: '14px',
                 marginBottom: '36px',
-              }}>
+              }} className="hero-cta-group">
                 <Link
                   to="/app"
                   className="btn btn-primary btn-lg"
@@ -83,29 +84,29 @@ export const HomePage: React.FC = () => {
               <div style={{
                 display: 'flex',
                 flexWrap: 'wrap',
-                gap: '20px',
+                gap: '16px',
                 paddingTop: '20px',
                 borderTop: '1px solid var(--color-border)',
                 fontSize: '0.8125rem',
                 color: 'var(--color-text-secondary)',
-              }}>
+              }} className="hero-guarantees-group">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <ShieldCheck size={16} color="var(--color-burgundy)" />
+                  <ShieldCheck size={16} color="var(--color-burgundy)" style={{ flexShrink: 0 }} />
                   <span>Always Human-Reviewed</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Sliders size={16} color="var(--color-copper)" />
+                  <Sliders size={16} color="var(--color-copper)" style={{ flexShrink: 0 }} />
                   <span>Deterministic Rule Precision</span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <Sparkles size={16} color="var(--color-burgundy)" />
+                  <Sparkles size={16} color="var(--color-burgundy)" style={{ flexShrink: 0 }} />
                   <span>Anti-Hallucination Grounding</span>
                 </div>
               </div>
             </div>
 
             {/* Right Column: Authentic Strategy Canvas Preview */}
-            <div>
+            <div style={{ minWidth: 0, maxWidth: '100%', width: '100%' }}>
               <AtelierPreview />
             </div>
           </div>
@@ -141,8 +142,11 @@ export const HomePage: React.FC = () => {
 
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))',
           gap: '24px',
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
         }}>
           {/* Pillar 1 */}
           <div className="card" style={{ borderTop: '3px solid #A03328' }}>
@@ -322,9 +326,12 @@ export const HomePage: React.FC = () => {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 230px), 1fr))',
             gap: '24px',
             position: 'relative',
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
           }}>
             {/* Step 1 */}
             <div style={{
@@ -447,13 +454,7 @@ export const HomePage: React.FC = () => {
 
       {/* 4. ENGINE ARCHITECTURE */}
       <section id="architecture" className="container">
-        <div style={{
-          backgroundColor: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '40px',
-          boxShadow: 'var(--shadow-sm)',
-        }}>
+        <div className="atelier-spec-card">
           <div style={{ maxWidth: '640px', marginBottom: '32px' }}>
             <div style={{
               fontSize: '0.75rem',
@@ -480,8 +481,11 @@ export const HomePage: React.FC = () => {
 
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 250px), 1fr))',
             gap: '24px',
+            width: '100%',
+            maxWidth: '100%',
+            minWidth: 0,
           }}>
             <div style={{
               borderLeft: '2px solid var(--color-burgundy)',
@@ -524,19 +528,10 @@ export const HomePage: React.FC = () => {
 
       {/* 5. CLOSING CTA */}
       <section className="container">
-        <div style={{
-          backgroundColor: 'var(--color-surface)',
-          border: '1px solid var(--color-border)',
-          borderRadius: 'var(--radius-lg)',
-          padding: '48px 32px',
-          textAlign: 'center',
-          boxShadow: 'var(--shadow-xs)',
-          maxWidth: '820px',
-          margin: '0 auto',
-        }}>
+        <div className="atelier-cta-card">
           <h2 style={{
             fontFamily: 'var(--font-serif)',
-            fontSize: '2.125rem',
+            fontSize: 'clamp(1.75rem, 4vw, 2.125rem)',
             fontWeight: 600,
             color: 'var(--color-text-primary)',
             marginBottom: '14px',
@@ -552,7 +547,7 @@ export const HomePage: React.FC = () => {
           }}>
             Enter the atelier workspace to test your content against brand guidelines, approved lexicon, and verified factual statements.
           </p>
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
             <Link
               to="/app"
               className="btn btn-primary btn-lg"

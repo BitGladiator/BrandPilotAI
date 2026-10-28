@@ -15,10 +15,13 @@ export const Footer: React.FC = () => {
       <div className="container">
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))',
           gap: '36px',
           paddingBottom: '40px',
           borderBottom: '1px solid var(--color-border-subtle)',
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
         }}>
           {/* Column 1: Brand & Manifesto */}
           <div>

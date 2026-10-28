@@ -225,16 +225,7 @@ export const WorkspacePage: React.FC = () => {
     <div style={{ padding: '32px 0 64px' }}>
       <div className="container">
         {/* Workspace Top Toolbar */}
-        <div style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '16px',
-          marginBottom: '24px',
-          paddingBottom: '20px',
-          borderBottom: '1px solid var(--color-border)',
-        }}>
+        <div className="workspace-toolbar-container">
           <div>
             <div style={{
               display: 'inline-flex',
@@ -251,7 +242,7 @@ export const WorkspacePage: React.FC = () => {
             </div>
             <h1 style={{
               fontFamily: 'var(--font-serif)',
-              fontSize: '1.75rem',
+              fontSize: 'clamp(1.5rem, 3.5vw, 1.75rem)',
               fontWeight: 600,
               letterSpacing: '-0.01em',
               color: 'var(--color-text-primary)',
@@ -261,9 +252,9 @@ export const WorkspacePage: React.FC = () => {
           </div>
 
           {/* Quick presets & view toggles */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)' }}>Draft Preset:</span>
+          <div className="workspace-controls-group">
+            <div className="preset-select-wrapper">
+              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>Draft Preset:</span>
               <select
                 className="input-text"
                 onChange={(e) => handlePresetSelect(Number(e.target.value))}
@@ -272,6 +263,8 @@ export const WorkspacePage: React.FC = () => {
                   padding: '5px 8px',
                   width: 'auto',
                   cursor: 'pointer',
+                  minHeight: '34px',
+                  maxWidth: '100%',
                 }}
               >
                 {PRESETS.map((p, idx) => (
@@ -287,6 +280,7 @@ export const WorkspacePage: React.FC = () => {
               className={`btn btn-sm ${showReferenceDrawer ? 'btn-secondary' : 'btn-ghost'}`}
               onClick={() => setShowReferenceDrawer(!showReferenceDrawer)}
               title="Toggle Brand Strategy Reference Panel"
+              style={{ minHeight: '34px' }}
             >
               <SlidersHorizontal size={14} />
               <span>{showReferenceDrawer ? 'Hide Reference Panel' : 'Show Reference Panel'}</span>
@@ -305,9 +299,11 @@ export const WorkspacePage: React.FC = () => {
             display: 'flex',
             alignItems: 'flex-start',
             gap: '12px',
+            minWidth: 0,
+            maxWidth: '100%',
           }}>
             <AlertCircle size={20} color="var(--color-error)" style={{ flexShrink: 0, marginTop: '2px' }} />
-            <div style={{ fontSize: '0.875rem', color: 'var(--color-error)' }}>
+            <div style={{ fontSize: '0.875rem', color: 'var(--color-error)', minWidth: 0, wordBreak: 'break-word' }}>
               <strong>Review Error:</strong> {errorMessage}
               {errorDetails && errorDetails.length > 0 && (
                 <ul style={{ marginTop: '6px', paddingLeft: '18px', fontSize: '0.8125rem' }}>
@@ -328,9 +324,12 @@ export const WorkspacePage: React.FC = () => {
           gridTemplateColumns: showReferenceDrawer ? 'minmax(0, 1.4fr) minmax(0, 1fr)' : '1fr',
           gap: '24px',
           alignItems: 'start',
+          width: '100%',
+          maxWidth: '100%',
+          minWidth: 0,
         }} className="workspace-grid">
           {/* LEFT COLUMN: Draft Editor + Findings List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
             {/* Draft Editor Component */}
             <DraftEditor
               draftText={draftText}
@@ -387,53 +386,34 @@ export const WorkspacePage: React.FC = () => {
                 </div>
 
                 {/* Filter Pills */}
-                <div style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '18px',
-                  fontSize: '0.75rem',
-                }}>
-                  <span style={{ color: 'var(--color-text-muted)' }}>Category:</span>
-                  {['All', 'Terminology', 'Tone', 'Claims', 'Accessibility'].map(cat => (
-                    <button
-                      key={cat}
-                      type="button"
-                      onClick={() => setCategoryFilter(cat)}
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: 'var(--radius-xs)',
-                        border: '1px solid var(--color-border)',
-                        backgroundColor: categoryFilter === cat ? 'var(--color-burgundy)' : 'var(--color-surface)',
-                        color: categoryFilter === cat ? '#FFFEFC' : 'var(--color-text-secondary)',
-                        fontSize: '0.75rem',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {cat}
-                    </button>
-                  ))}
+                <div className="filter-row-container">
+                  <div className="filter-group">
+                    <span className="filter-group-label">Category:</span>
+                    {['All', 'Terminology', 'Tone', 'Claims', 'Accessibility'].map(cat => (
+                      <button
+                        key={cat}
+                        type="button"
+                        onClick={() => setCategoryFilter(cat)}
+                        className={`filter-pill ${categoryFilter === cat ? 'active-cat' : ''}`}
+                      >
+                        {cat}
+                      </button>
+                    ))}
+                  </div>
 
-                  <span style={{ color: 'var(--color-text-muted)', marginLeft: '8px' }}>Severity:</span>
-                  {['All', 'High', 'Medium', 'Low'].map(sev => (
-                    <button
-                      key={sev}
-                      type="button"
-                      onClick={() => setSeverityFilter(sev)}
-                      style={{
-                        padding: '3px 8px',
-                        borderRadius: 'var(--radius-xs)',
-                        border: '1px solid var(--color-border)',
-                        backgroundColor: severityFilter === sev ? 'var(--color-copper)' : 'var(--color-surface)',
-                        color: severityFilter === sev ? '#FFFEFC' : 'var(--color-text-secondary)',
-                        fontSize: '0.75rem',
-                        cursor: 'pointer',
-                      }}
-                    >
-                      {sev}
-                    </button>
-                  ))}
+                  <div className="filter-group">
+                    <span className="filter-group-label">Severity:</span>
+                    {['All', 'High', 'Medium', 'Low'].map(sev => (
+                      <button
+                        key={sev}
+                        type="button"
+                        onClick={() => setSeverityFilter(sev)}
+                        className={`filter-pill ${severityFilter === sev ? 'active-sev' : ''}`}
+                      >
+                        {sev}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
                 {/* Findings List */}
@@ -484,7 +464,7 @@ export const WorkspacePage: React.FC = () => {
 
           {/* RIGHT COLUMN: Brand Reference Truth Drawer */}
           {showReferenceDrawer && (
-            <div style={{ position: 'sticky', top: '84px' }}>
+            <div className="sticky-reference-column" style={{ position: 'sticky', top: '84px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
               <ReferenceManager
                 guidelines={guidelines}
                 setGuidelines={setGuidelines}

@@ -132,7 +132,7 @@ export const ReferenceManager: React.FC<ReferenceManagerProps> = ({
           </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px' }}>
           <button
             type="button"
             className="btn btn-secondary btn-sm"
@@ -273,7 +273,7 @@ export const ReferenceManager: React.FC<ReferenceManagerProps> = ({
                     fontSize: '0.8125rem',
                   }}
                 >
-                  <div>
+                  <div style={{ minWidth: 0, flex: 1, paddingRight: '8px', wordBreak: 'break-word' }}>
                     <strong style={{ color: 'var(--color-burgundy)', marginRight: '6px' }}>
                       {t.preferred}
                     </strong>
@@ -342,7 +342,7 @@ export const ReferenceManager: React.FC<ReferenceManagerProps> = ({
                     fontSize: '0.8125rem',
                   }}
                 >
-                  <div>
+                  <div style={{ minWidth: 0, flex: 1, paddingRight: '8px', wordBreak: 'break-word' }}>
                     <span style={{
                       fontFamily: 'var(--font-mono)',
                       fontSize: '0.6875rem',
@@ -415,7 +415,7 @@ export const ReferenceManager: React.FC<ReferenceManagerProps> = ({
                     fontSize: '0.8125rem',
                   }}
                 >
-                  <div>
+                  <div style={{ minWidth: 0, flex: 1, paddingRight: '8px', wordBreak: 'break-word' }}>
                     <span style={{
                       fontFamily: 'var(--font-mono)',
                       fontSize: '0.6875rem',

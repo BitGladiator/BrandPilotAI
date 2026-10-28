@@ -79,15 +79,23 @@ export const ReviewSummaryBanner: React.FC<ReviewSummaryBannerProps> = ({ respon
       <div style={{
         display: 'flex',
         flexWrap: 'wrap',
-        gap: '12px',
+        alignItems: 'center',
+        gap: '8px 16px',
         fontSize: '0.75rem',
         color: 'var(--color-text-muted)',
       }}>
-        <span>Deterministic Rule Engine: <strong style={{ color: 'var(--color-text-primary)' }}>{ruleCount}</strong> found</span>
-        <span>•</span>
-        <span>AI Heuristic Analysis: <strong style={{ color: 'var(--color-text-primary)' }}>{aiCount}</strong> found</span>
-        <span>•</span>
-        <span>Human Review Required: <strong style={{ color: 'var(--color-burgundy)' }}>Always</strong></span>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <span>Deterministic Rule Engine:</span>
+          <strong style={{ color: 'var(--color-text-primary)' }}>{ruleCount}</strong>
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <span>AI Heuristic Analysis:</span>
+          <strong style={{ color: 'var(--color-text-primary)' }}>{aiCount}</strong>
+        </div>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+          <span>Human Review:</span>
+          <strong style={{ color: 'var(--color-burgundy)' }}>Required</strong>
+        </div>
       </div>
 
       {warnings && warnings.length > 0 && (

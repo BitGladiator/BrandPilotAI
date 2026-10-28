@@ -255,14 +255,14 @@ export const Navbar: React.FC = () => {
           {isWorkspace ? (
             <Link
               to="/"
-              className="btn btn-secondary btn-sm"
+              className="btn btn-secondary btn-sm navbar-top-cta"
             >
               Exit to Overview
             </Link>
           ) : (
             <Link
               to="/app"
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm navbar-top-cta"
               style={{
                 boxShadow: '0 2px 6px rgba(112, 47, 61, 0.25)',
               }}
@@ -291,11 +291,31 @@ export const Navbar: React.FC = () => {
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
         <div style={{
+          position: 'absolute',
+          top: '100%',
+          left: 0,
+          right: 0,
           borderTop: '1px solid var(--color-border)',
+          borderBottom: '1px solid var(--color-border)',
           backgroundColor: 'var(--color-surface)',
-          padding: '16px 20px 24px',
+          padding: '20px 20px 26px',
+          boxShadow: '0 10px 24px rgba(41, 36, 33, 0.08)',
+          maxHeight: 'calc(100vh - 64px)',
+          overflowY: 'auto',
+          zIndex: 100,
         }} className="mobile-menu">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '16px' }}>
+          <div style={{ marginBottom: '18px' }}>
+            <Link
+              to={isWorkspace ? '/' : '/app'}
+              onClick={() => setMobileMenuOpen(false)}
+              className={`btn ${isWorkspace ? 'btn-secondary' : 'btn-primary'}`}
+              style={{ width: '100%', justifyContent: 'center', minHeight: '44px' }}
+            >
+              {isWorkspace ? 'Exit to Overview' : 'Open BrandPilot Atelier'}
+            </Link>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '18px', paddingBottom: '14px', borderBottom: '1px solid var(--color-border-subtle)' }}>
             <a
               href="/"
               onClick={(e) => handleNavClick(e, 'overview')}
@@ -304,6 +324,7 @@ export const Navbar: React.FC = () => {
                 fontWeight: !isWorkspace && activeTab === 'overview' ? 600 : 500,
                 color: !isWorkspace && activeTab === 'overview' ? 'var(--color-burgundy)' : 'var(--color-text-primary)',
                 textDecoration: 'none',
+                padding: '6px 0',
               }}
             >
               Overview
@@ -316,6 +337,7 @@ export const Navbar: React.FC = () => {
                 fontWeight: !isWorkspace && activeTab === 'pillars' ? 600 : 500,
                 color: !isWorkspace && activeTab === 'pillars' ? 'var(--color-burgundy)' : 'var(--color-text-secondary)',
                 textDecoration: 'none',
+                padding: '6px 0',
               }}
             >
               Core Pillars
@@ -328,6 +350,7 @@ export const Navbar: React.FC = () => {
                 fontWeight: !isWorkspace && activeTab === 'workflow' ? 600 : 500,
                 color: !isWorkspace && activeTab === 'workflow' ? 'var(--color-burgundy)' : 'var(--color-text-secondary)',
                 textDecoration: 'none',
+                padding: '6px 0',
               }}
             >
               Workflow
@@ -340,24 +363,16 @@ export const Navbar: React.FC = () => {
                 fontWeight: !isWorkspace && activeTab === 'architecture' ? 600 : 500,
                 color: !isWorkspace && activeTab === 'architecture' ? 'var(--color-burgundy)' : 'var(--color-text-secondary)',
                 textDecoration: 'none',
+                padding: '6px 0',
               }}
             >
               Engine Spec
             </a>
           </div>
 
-          <div style={{ marginBottom: '16px' }}>
+          <div>
             <SystemStatus />
           </div>
-
-          <Link
-            to={isWorkspace ? '/' : '/app'}
-            onClick={() => setMobileMenuOpen(false)}
-            className={`btn ${isWorkspace ? 'btn-secondary' : 'btn-primary'}`}
-            style={{ width: '100%', justifyContent: 'center' }}
-          >
-            {isWorkspace ? 'Exit to Overview' : 'Open BrandPilot Atelier'}
-          </Link>
         </div>
       )}
 
@@ -371,6 +386,11 @@ export const Navbar: React.FC = () => {
           }
           .mobile-toggle {
             display: inline-flex !important;
+          }
+        }
+        @media (max-width: 540px) {
+          .navbar-top-cta {
+            display: none !important;
           }
         }
       `}</style>

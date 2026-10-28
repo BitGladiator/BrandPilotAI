@@ -13,9 +13,12 @@ export const App: React.FC = () => {
         flexDirection: 'column',
         minHeight: '100vh',
         backgroundColor: 'var(--color-bg)',
+        width: '100%',
+        maxWidth: '100vw',
+        overflowX: 'hidden',
       }}>
         <Navbar />
-        <main style={{ flex: 1 }}>
+        <main style={{ flex: 1, width: '100%', maxWidth: '100%', minWidth: 0, overflowX: 'hidden' }}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/app" element={<WorkspacePage />} />
