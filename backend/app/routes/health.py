@@ -9,7 +9,7 @@ router = APIRouter()
 @router.get("/health", tags=["system"])
 async def health():
     s = get_settings()
-    return {"status": "ok", "ai_provider": s.ai_provider, "version": "0.1.0"}
+    return {"status": "ok", "ai_provider": s.ai_provider, "version": "0.2.0"}
 
 
 @router.get("/sample-data", tags=["reference"])

@@ -199,6 +199,23 @@ def _mock_review(draft: str, guidelines: list[Guideline], facts: list[ApprovedFa
         if not sent:
             continue
         handled = False
+
+        # First check if sentence matches any approved fact
+        nums_in_sent = re.findall(r"\b\d+[\d,]*\b", sent)
+        sent_words = set(re.findall(r"\b\w{3,}\b", sent.lower()))
+        for fact in facts:
+            fact_nums = re.findall(r"\b\d+[\d,]*\b", fact.text)
+            fact_words = set(re.findall(r"\b\w{3,}\b", fact.text.lower()))
+            overlap = sent_words & fact_words
+            # If the numbers match and words overlap, it is an approved fact match
+            if nums_in_sent and fact_nums:
+                if set(nums_in_sent) == set(fact_nums) and len(overlap) >= 2:
+                    handled = True
+                    break
+
+        if handled:
+            continue
+
         for num, unit in _NUM_UNIT.findall(sent):
             for fact in facts:
                 for fnum, funit in _NUM_UNIT.findall(fact.text):

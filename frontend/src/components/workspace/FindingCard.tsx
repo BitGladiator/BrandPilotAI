@@ -1,6 +1,6 @@
 import React from 'react';
 import type { Finding } from '../../types';
-import { ArrowRight, Check, Sparkles, Sliders, ShieldCheck } from 'lucide-react';
+import { ArrowRight, Check, Sparkles, Sliders, ShieldCheck, BookOpen } from 'lucide-react';
 
 interface FindingCardProps {
   finding: Finding;
@@ -166,6 +166,42 @@ export const FindingCard: React.FC<FindingCardProps> = ({
             >
               {evId}
             </span>
+          ))}
+        </div>
+      )}
+
+      {/* Source Guideline Citation Area */}
+      {finding.citations && finding.citations.length > 0 && (
+        <div style={{
+          backgroundColor: '#FCFAF6',
+          border: '1px solid var(--color-border)',
+          borderRadius: 'var(--radius-xs)',
+          padding: '10px 12px',
+          marginBottom: '12px',
+          fontSize: '0.8125rem',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '6px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600, color: 'var(--color-burgundy)' }}>
+              <BookOpen size={13} />
+              <span>Source Guideline</span>
+            </div>
+            {finding.citations[0].relevance_score !== undefined && finding.citations[0].relevance_score !== null && (
+              <span className="badge badge-neutral" style={{ fontSize: '0.6875rem' }}>
+                {Math.round(finding.citations[0].relevance_score * 100)}% Grounded
+              </span>
+            )}
+          </div>
+          {finding.citations.map((c, i) => (
+            <div key={i} style={{ borderTop: i > 0 ? '1px dashed var(--color-border-subtle)' : 'none', paddingTop: i > 0 ? '6px' : 0, marginTop: i > 0 ? '6px' : 0 }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--color-text-muted)', marginBottom: '3px' }}>
+                <strong style={{ color: 'var(--color-text-primary)' }}>{c.document_name}</strong>
+                {c.heading_path && <span>&bull; {c.heading_path}</span>}
+                {c.page_number && <span>&bull; Page {c.page_number}</span>}
+              </div>
+              <p style={{ margin: 0, fontStyle: 'italic', color: 'var(--color-text-secondary)', lineHeight: 1.45 }}>
+                "{c.excerpt}"
+              </p>
+            </div>
           ))}
         </div>
       )}

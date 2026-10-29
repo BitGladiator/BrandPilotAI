@@ -1,0 +1,187 @@
+{
+  "version": "1.0.0",
+  "description": "BrandPilot Ground-Truth Labelled Evaluation Dataset for Editorial Brand Governance Review",
+  "guidelines_reference": [
+    {"id": "VOICE-01", "text": "Use clear, friendly language that a non-expert can understand."},
+    {"id": "VOICE-02", "text": "Avoid hype, superlatives and guarantees (e.g. 'best', 'revolutionary', 'guaranteed') unless backed by an approved fact."},
+    {"id": "VOICE-03", "text": "Speak directly to the reader using 'you' and prefer active voice."}
+  ],
+  "approved_terms": [
+    {"id": "TERM01", "preferred": "customer", "avoid": ["consumer", "end-user"]},
+    {"id": "TERM02", "preferred": "sign in", "avoid": ["log in", "login"]},
+    {"id": "TERM03", "preferred": "email", "avoid": ["e-mail"]}
+  ],
+  "approved_facts": [
+    {"id": "FACT01", "text": "The service is available in 10 regions"},
+    {"id": "FACT02", "text": "Customer support is available 24 hours a day via chat"},
+    {"id": "FACT03", "text": "The company was founded in 2018"}
+  ],
+  "test_cases": [
+    {
+      "id": "TC-01",
+      "name": "Terminology Avoid Term Singular",
+      "draft_text": "Every consumer can set up their workspace in minutes.",
+      "expected_issues": [
+        {
+          "category": "Terminology",
+          "term": "consumer",
+          "severity": "Medium",
+          "rule_id": "TERM01",
+          "suggested_correction": "customer"
+        }
+      ]
+    },
+    {
+      "id": "TC-02",
+      "name": "Terminology Plural and Multiple Avoid Terms",
+      "draft_text": "We empower consumers and end-users with modern tools.",
+      "expected_issues": [
+        {
+          "category": "Terminology",
+          "term": "consumers",
+          "severity": "Medium",
+          "rule_id": "TERM01",
+          "suggested_correction": "customers"
+        },
+        {
+          "category": "Terminology",
+          "term": "end-users",
+          "severity": "Medium",
+          "rule_id": "TERM01",
+          "suggested_correction": "customers"
+        }
+      ]
+    },
+    {
+      "id": "TC-03",
+      "name": "Terminology Compound Hyphenated and Login",
+      "draft_text": "Please send an e-mail to our team to log in to your account.",
+      "expected_issues": [
+        {
+          "category": "Terminology",
+          "term": "e-mail",
+          "severity": "Medium",
+          "rule_id": "TERM03",
+          "suggested_correction": "email"
+        },
+        {
+          "category": "Terminology",
+          "term": "log in",
+          "severity": "Medium",
+          "rule_id": "TERM02",
+          "suggested_correction": "sign in"
+        }
+      ]
+    },
+    {
+      "id": "TC-04",
+      "name": "Fact Contradiction High Severity",
+      "draft_text": "Our enterprise infrastructure is available in 15 regions worldwide.",
+      "expected_issues": [
+        {
+          "category": "Claims",
+          "term": "15 regions",
+          "severity": "High",
+          "rule_id": "FACT01",
+          "suggested_correction": "available in 10 regions"
+        }
+      ]
+    },
+    {
+      "id": "TC-05",
+      "name": "Unsupported Factual Claim Low Confidence",
+      "draft_text": "BrandPilot now serves over 50,000 active enterprises.",
+      "expected_issues": [
+        {
+          "category": "Claims",
+          "term": "50,000 active enterprises",
+          "severity": "Medium",
+          "rule_id": "UNSUPPORTED_CLAIM",
+          "suggested_correction": "verify with ground truth"
+        }
+      ]
+    },
+    {
+      "id": "TC-06",
+      "name": "Tone Superlatives and Hype",
+      "draft_text": "We have created the best revolutionary atelier with guaranteed results.",
+      "expected_issues": [
+        {
+          "category": "Tone",
+          "term": "best",
+          "severity": "Medium",
+          "rule_id": "VOICE-02",
+          "suggested_correction": "Use measured language"
+        },
+        {
+          "category": "Tone",
+          "term": "revolutionary",
+          "severity": "Medium",
+          "rule_id": "VOICE-02",
+          "suggested_correction": "Avoid hype"
+        },
+        {
+          "category": "Tone",
+          "term": "guaranteed",
+          "severity": "Medium",
+          "rule_id": "VOICE-02",
+          "suggested_correction": "Avoid guarantees unless backed by facts"
+        }
+      ]
+    },
+    {
+      "id": "TC-07",
+      "name": "Accessibility Non-descriptive Link Copy",
+      "draft_text": "To discover our latest product announcements, click here.",
+      "expected_issues": [
+        {
+          "category": "Accessibility",
+          "term": "click here",
+          "severity": "Low",
+          "rule_id": "ACC-01",
+          "suggested_correction": "use meaningful link text"
+        }
+      ]
+    },
+    {
+      "id": "TC-08",
+      "name": "Negative Control Perfect Compliant Copy",
+      "draft_text": "Customers can sign in with their email. Our support team is available 24 hours a day via chat across 10 regions.",
+      "expected_issues": []
+    },
+    {
+      "id": "TC-09",
+      "name": "Negative Control Second Compliant Sample",
+      "draft_text": "Founded in 2018, the company provides clear editorial guidance for your brand.",
+      "expected_issues": []
+    },
+    {
+      "id": "TC-10",
+      "name": "Multi-category Mixed Draft",
+      "draft_text": "Each consumer can click here to see why we are the best in the market.",
+      "expected_issues": [
+        {
+          "category": "Terminology",
+          "term": "consumer",
+          "severity": "Medium",
+          "rule_id": "TERM01",
+          "suggested_correction": "customer"
+        },
+        {
+          "category": "Accessibility",
+          "term": "click here",
+          "severity": "Low",
+          "rule_id": "ACC-01",
+          "suggested_correction": "use descriptive link text"
+        },
+        {
+          "category": "Tone",
+          "term": "best",
+          "severity": "Medium",
+          "rule_id": "VOICE-02",
+          "suggested_correction": "avoid superlatives"
+        }
+      ]
+    }
+  ]
+}

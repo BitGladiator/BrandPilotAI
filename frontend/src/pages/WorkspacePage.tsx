@@ -1,24 +1,31 @@
 import React, { useState } from 'react';
 import { api, ApiClientError } from '../services/api';
 import type {
-  Guideline,
-  ApprovedTerm,
-  ApprovedFact,
   Finding,
   ReviewResponse,
 } from '../types';
+import { useAuth } from '../context/AuthContext';
 import { DraftEditor } from '../components/workspace/DraftEditor';
 import { FindingCard } from '../components/workspace/FindingCard';
-import { ReferenceManager } from '../components/workspace/ReferenceManager';
 import { ReviewSummaryBanner } from '../components/workspace/ReviewSummaryBanner';
+import { BrandGuidelineLibrary } from '../components/documents/BrandGuidelineLibrary';
+import { ReviewerQueue } from '../components/workspace/ReviewerQueue';
+import { RecurringIssuesDashboard } from '../components/analytics/RecurringIssuesDashboard';
+import { EvaluationDashboard } from '../components/evaluation/EvaluationDashboard';
+import { DraftVersionHistoryModal } from '../components/workspace/DraftVersionHistoryModal';
+import { AuthModal } from '../components/auth/AuthModal';
 import {
-  SlidersHorizontal,
-  CheckCircle2,
-  AlertCircle,
-  Wand2,
+  BookOpen,
+  Send,
+  History,
+  ShieldCheck,
+  BarChart3,
+  Target,
+  Sparkles,
+  FileEdit,
+  LogIn,
 } from 'lucide-react';
 
-// Preset drafts for quick review testing
 const PRESETS = [
   {
     name: 'Launch Announcement (Has Discrepancies)',
@@ -34,59 +41,35 @@ const PRESETS = [
   },
 ];
 
+type WorkspaceTab = 'studio' | 'guidelines' | 'queue' | 'analytics' | 'evaluation';
+
 export const WorkspacePage: React.FC = () => {
+  const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState<WorkspaceTab>('studio');
+
   // Draft state
+  const [draftTitle, setDraftTitle] = useState('Marketing Launch Campaign Draft');
   const [draftText, setDraftText] = useState(PRESETS[0].text);
+  const [currentDraftId, setCurrentDraftId] = useState<string | null>(null);
+  const [currentDraftStatus, setCurrentDraftStatus] = useState<string>('draft');
+  const [currentRevisionNumber, setCurrentRevisionNumber] = useState<number>(1);
 
-  // Reference dataset states (empty by default so backend uses built-in sample reference data)
-  const [guidelines, setGuidelines] = useState<Guideline[]>([]);
-  const [terms, setTerms] = useState<ApprovedTerm[]>([]);
-  const [facts, setFacts] = useState<ApprovedFact[]>([]);
-  const [isCustomActive, setIsCustomActive] = useState(false);
-
-  // Review response and interaction states
+  // Review response state
   const [isLoading, setIsLoading] = useState(false);
-  const [isLoadingSamples, setIsLoadingSamples] = useState(false);
   const [reviewResponse, setReviewResponse] = useState<ReviewResponse | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [errorDetails, setErrorDetails] = useState<Array<{ field: string; message: string }> | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  // Filter & selection states
+  // Selection & filter
   const [selectedFindingId, setSelectedFindingId] = useState<string | null>(null);
   const [dismissedFindingIds, setDismissedFindingIds] = useState<Set<string>>(new Set());
   const [categoryFilter, setCategoryFilter] = useState<string>('All');
-  const [severityFilter, setSeverityFilter] = useState<string>('All');
-  const [showReferenceDrawer, setShowReferenceDrawer] = useState(true);
 
-  // Load backend samples into reference state
-  const handleLoadBackendSamples = async () => {
-    setIsLoadingSamples(true);
-    setErrorMessage(null);
-    try {
-      const data = await api.getSampleData();
-      setGuidelines(data.brand_guidelines || []);
-      setTerms(data.approved_terms || []);
-      setFacts(data.approved_facts || []);
-      setIsCustomActive(true);
-    } catch (err: unknown) {
-      if (err instanceof ApiClientError) {
-        setErrorMessage(err.message);
-      } else {
-        setErrorMessage('Failed to load sample references from backend.');
-      }
-    } finally {
-      setIsLoadingSamples(false);
-    }
-  };
+  // Modals
+  const [showHistoryModal, setShowHistoryModal] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
 
-  const handleResetToBackendDefault = () => {
-    setGuidelines([]);
-    setTerms([]);
-    setFacts([]);
-    setIsCustomActive(false);
-  };
-
-  // Run Review API call
+  // Run Review & persist draft in PostgreSQL if authenticated
   const handleReview = async () => {
     if (!draftText.trim()) {
       setErrorMessage('Please enter draft text before running a review.');
@@ -95,400 +78,512 @@ export const WorkspacePage: React.FC = () => {
 
     setIsLoading(true);
     setErrorMessage(null);
-    setErrorDetails(null);
+    setSuccessMessage(null);
 
     try {
+      // If user is authenticated, create or update the persistent Draft entity
+      if (user) {
+        if (!currentDraftId) {
+          const draftObj = await api.createDraft(draftTitle, draftText);
+          setCurrentDraftId(draftObj.id);
+          setCurrentDraftStatus(draftObj.current_status);
+          setCurrentRevisionNumber(draftObj.latest_revision.revision_number);
+          setReviewResponse({
+            findings: draftObj.findings,
+            review_summary: draftObj.latest_revision.review_summary || 'Review completed against brand guidelines.',
+            needs_human_review: draftObj.latest_revision.needs_human_review,
+            ai_status: (draftObj.latest_revision.ai_status as 'ok' | 'skipped' | 'unavailable') || 'ok',
+            reference_source: 'indexed_database',
+            warnings: [],
+          });
+          setSuccessMessage(`Draft created and saved as Revision #${draftObj.latest_revision.revision_number} in PostgreSQL.`);
+          setIsLoading(false);
+          return;
+        } else {
+          const draftObj = await api.updateDraft(currentDraftId, draftTitle, draftText);
+          setCurrentDraftStatus(draftObj.current_status);
+          setCurrentRevisionNumber(draftObj.latest_revision.revision_number);
+          setReviewResponse({
+            findings: draftObj.findings,
+            review_summary: draftObj.latest_revision.review_summary || 'Review completed against brand guidelines.',
+            needs_human_review: draftObj.latest_revision.needs_human_review,
+            ai_status: (draftObj.latest_revision.ai_status as 'ok' | 'skipped' | 'unavailable') || 'ok',
+            reference_source: 'indexed_database',
+            warnings: [],
+          });
+          setSuccessMessage(`Updated to Revision #${draftObj.latest_revision.revision_number}.`);
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Fallback for unauthenticated direct review
       const payload = {
         draft_text: draftText,
-        ...(isCustomActive && guidelines.length > 0 ? { brand_guidelines: guidelines } : {}),
-        ...(isCustomActive && terms.length > 0 ? { approved_terms: terms } : {}),
-        ...(isCustomActive && facts.length > 0 ? { approved_facts: facts } : {}),
+        use_indexed_guidelines: true,
       };
 
-      const res = await api.reviewDraft(payload);
-      setReviewResponse(res);
+      const response = await api.reviewDraft(payload);
+      setReviewResponse(response);
       setDismissedFindingIds(new Set());
-      if (res.findings && res.findings.length > 0) {
-        setSelectedFindingId(res.findings[0].id);
-      } else {
-        setSelectedFindingId(null);
-      }
+      setSelectedFindingId(null);
     } catch (err: unknown) {
       if (err instanceof ApiClientError) {
         setErrorMessage(err.message);
-        if (err.details && err.details.length > 0) {
-          setErrorDetails(err.details);
-        }
       } else {
-        setErrorMessage('An unexpected error occurred while communicating with the BrandPilot backend.');
+        setErrorMessage('Unexpected error during review.');
       }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Apply suggestion directly into draft text
-  const handleApplySuggestion = (finding: Finding) => {
-    if (!finding.suggestion) return;
-
-    let newDraft = draftText;
-
-    // If character offsets are present and match excerpt, use precise slice replacement
-    if (
-      finding.start !== undefined &&
-      finding.start !== null &&
-      finding.end !== undefined &&
-      finding.end !== null &&
-      draftText.substring(finding.start, finding.end) === finding.excerpt
-    ) {
-      newDraft =
-        draftText.substring(0, finding.start) +
-        finding.suggestion +
-        draftText.substring(finding.end);
-    } else {
-      // Fallback: word replacement for excerpt
-      newDraft = draftText.replace(finding.excerpt, finding.suggestion);
+  // Submit draft to reviewer queue
+  const handleSubmitForApproval = async () => {
+    if (!user) {
+      setShowAuthModal(true);
+      return;
     }
 
-    setDraftText(newDraft);
-
-    // Mark finding as dismissed / handled
-    setDismissedFindingIds(prev => new Set([...prev, finding.id]));
-  };
-
-  // Batch apply all safe suggestions that have direct replacements
-  const handleApplyAllSafe = () => {
-    if (!reviewResponse) return;
-    let updatedText = draftText;
-    const handledIds = new Set(dismissedFindingIds);
-
-    // Apply terminology replacements (safest deterministic fixes)
-    const termFindings = reviewResponse.findings.filter(
-      f => f.category === 'Terminology' && f.suggestion && !handledIds.has(f.id)
-    );
-
-    // Sort by start descending so earlier indices don't shift
-    const sorted = [...termFindings].sort((a, b) => (b.start ?? 0) - (a.start ?? 0));
-
-    sorted.forEach(f => {
-      if (
-        f.start !== undefined &&
-        f.start !== null &&
-        f.end !== undefined &&
-        f.end !== null &&
-        updatedText.substring(f.start, f.end) === f.excerpt
-      ) {
-        updatedText =
-          updatedText.substring(0, f.start) +
-          f.suggestion +
-          updatedText.substring(f.end);
-        handledIds.add(f.id);
-      } else if (updatedText.includes(f.excerpt)) {
-        updatedText = updatedText.replace(f.excerpt, f.suggestion);
-        handledIds.add(f.id);
+    if (!currentDraftId) {
+      // Create first
+      try {
+        const draftObj = await api.createDraft(draftTitle, draftText);
+        setCurrentDraftId(draftObj.id);
+        await api.submitDraft(draftObj.id);
+        setCurrentDraftStatus('submitted');
+        setSuccessMessage('Draft saved and submitted to the reviewer approval queue!');
+      } catch (err: unknown) {
+        if (err instanceof ApiClientError) setErrorMessage(err.message);
       }
-    });
+      return;
+    }
 
-    setDraftText(updatedText);
-    setDismissedFindingIds(handledIds);
-  };
-
-  const handleToggleDismiss = (id: string) => {
-    setDismissedFindingIds(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        next.delete(id);
+    try {
+      await api.submitDraft(currentDraftId);
+      setCurrentDraftStatus('submitted');
+      setSuccessMessage('Draft successfully submitted to reviewer queue.');
+    } catch (err: unknown) {
+      if (err instanceof ApiClientError) {
+        setErrorMessage(err.message);
       } else {
-        next.add(id);
+        setErrorMessage('Failed to submit draft.');
       }
+    }
+  };
+
+  // Suggestion action
+  const handleApplySuggestion = async (finding: Finding) => {
+    if (!finding.suggestion) return;
+
+    if (finding.start !== undefined && finding.end !== undefined && finding.start !== null && finding.end !== null) {
+      const before = draftText.slice(0, finding.start);
+      const after = draftText.slice(finding.end);
+      setDraftText(before + finding.suggestion + after);
+    } else {
+      setDraftText((prev) => prev.replace(finding.excerpt, finding.suggestion));
+    }
+
+    // Record decision if persistent draft
+    if (currentDraftId && user) {
+      try {
+        await api.recordSuggestionAction(currentDraftId, finding.id, 'accept');
+      } catch {
+        // Ignored
+      }
+    }
+
+    setDismissedFindingIds((prev) => new Set(prev).add(finding.id));
+  };
+
+  const handleToggleDismiss = async (findingId: string) => {
+    const isDismissed = dismissedFindingIds.has(findingId);
+    const action = isDismissed ? 'override' : 'dismiss';
+
+    setDismissedFindingIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(findingId)) next.delete(findingId);
+      else next.add(findingId);
       return next;
     });
+
+    if (currentDraftId && user) {
+      try {
+        await api.recordSuggestionAction(currentDraftId, findingId, action);
+      } catch {
+        // Ignored
+      }
+    }
   };
 
-  const handlePresetSelect = (presetIndex: number) => {
-    setDraftText(PRESETS[presetIndex].text);
-    setReviewResponse(null);
-    setSelectedFindingId(null);
-    setDismissedFindingIds(new Set());
-    setErrorMessage(null);
+  const handleRestoreRevision = async (revisionId: string) => {
+    if (!currentDraftId) return;
+    try {
+      const restored = await api.restoreRevision(currentDraftId, revisionId);
+      setDraftText(restored.latest_revision.draft_text);
+      setCurrentRevisionNumber(restored.latest_revision.revision_number);
+      setCurrentDraftStatus(restored.current_status);
+      setReviewResponse({
+        findings: restored.findings,
+        review_summary: restored.latest_revision.review_summary || 'Restored historical revision.',
+        needs_human_review: restored.latest_revision.needs_human_review,
+        ai_status: 'ok',
+        reference_source: 'indexed_database',
+        warnings: [],
+      });
+      setShowHistoryModal(false);
+      setSuccessMessage(`Restored to Revision #${restored.latest_revision.revision_number}. Historical records remain immutable.`);
+    } catch (err: unknown) {
+      if (err instanceof ApiClientError) setErrorMessage(err.message);
+    }
   };
 
   // Filter findings
-  const findings = reviewResponse?.findings || [];
-  const filteredFindings = findings.filter(f => {
-    if (categoryFilter !== 'All' && f.category !== categoryFilter) return false;
-    if (severityFilter !== 'All' && f.severity !== severityFilter) return false;
+  const allFindings = reviewResponse?.findings || [];
+  const filteredFindings = allFindings.filter((f) => {
+    if (categoryFilter !== 'All' && f.category.toLowerCase() !== categoryFilter.toLowerCase()) return false;
     return true;
   });
 
   return (
-    <div style={{ padding: '32px 0 64px' }}>
-      <div className="container">
-        {/* Workspace Top Toolbar */}
-        <div className="workspace-toolbar-container">
-          <div>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '6px',
-              fontSize: '0.6875rem',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color: 'var(--color-copper-hover)',
-              marginBottom: '2px',
-            }}>
-              ATELIER CONTENT WORKSPACE
-            </div>
-            <h1 style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 'clamp(1.5rem, 3.5vw, 1.75rem)',
-              fontWeight: 600,
-              letterSpacing: '-0.01em',
-              color: 'var(--color-text-primary)',
-            }}>
-              Review & Align Draft
-            </h1>
-          </div>
+    <div className="container" style={{ paddingTop: '24px', paddingBottom: '60px' }}>
+      {/* Top Workspace Navigation Tabs */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '12px',
+        marginBottom: '24px',
+        borderBottom: '1px solid var(--color-border)',
+        paddingBottom: '12px',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab('studio')}
+            className={`btn btn-sm ${activeTab === 'studio' ? 'btn-primary' : 'btn-ghost'}`}
+          >
+            <FileEdit size={14} />
+            <span>Atelier Draft Studio</span>
+          </button>
 
-          {/* Quick presets & view toggles */}
-          <div className="workspace-controls-group">
-            <div className="preset-select-wrapper">
-              <span style={{ fontSize: '0.75rem', color: 'var(--color-text-muted)', whiteSpace: 'nowrap' }}>Draft Preset:</span>
-              <select
-                className="input-text"
-                onChange={(e) => handlePresetSelect(Number(e.target.value))}
-                style={{
-                  fontSize: '0.8125rem',
-                  padding: '5px 8px',
-                  width: 'auto',
-                  cursor: 'pointer',
-                  minHeight: '34px',
-                  maxWidth: '100%',
-                }}
-              >
-                {PRESETS.map((p, idx) => (
-                  <option key={p.name} value={idx}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('guidelines')}
+            className={`btn btn-sm ${activeTab === 'guidelines' ? 'btn-primary' : 'btn-ghost'}`}
+          >
+            <BookOpen size={14} />
+            <span>Brand Guidelines Library</span>
+          </button>
 
-            <button
-              type="button"
-              className={`btn btn-sm ${showReferenceDrawer ? 'btn-secondary' : 'btn-ghost'}`}
-              onClick={() => setShowReferenceDrawer(!showReferenceDrawer)}
-              title="Toggle Brand Strategy Reference Panel"
-              style={{ minHeight: '34px' }}
-            >
-              <SlidersHorizontal size={14} />
-              <span>{showReferenceDrawer ? 'Hide Reference Panel' : 'Show Reference Panel'}</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={() => setActiveTab('queue')}
+            className={`btn btn-sm ${activeTab === 'queue' ? 'btn-primary' : 'btn-ghost'}`}
+          >
+            <ShieldCheck size={14} />
+            <span>Reviewer Approval Queue</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('analytics')}
+            className={`btn btn-sm ${activeTab === 'analytics' ? 'btn-primary' : 'btn-ghost'}`}
+          >
+            <BarChart3 size={14} />
+            <span>Recurring-Issues Analytics</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveTab('evaluation')}
+            className={`btn btn-sm ${activeTab === 'evaluation' ? 'btn-primary' : 'btn-ghost'}`}
+          >
+            <Target size={14} />
+            <span>Accuracy Benchmark</span>
+          </button>
         </div>
 
-        {/* Error notification banner */}
-        {errorMessage && (
-          <div style={{
-            backgroundColor: 'var(--color-error-bg)',
-            border: '1px solid var(--color-error-border)',
-            borderRadius: 'var(--radius-sm)',
-            padding: '14px 18px',
-            marginBottom: '20px',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '12px',
-            minWidth: 0,
-            maxWidth: '100%',
-          }}>
-            <AlertCircle size={20} color="var(--color-error)" style={{ flexShrink: 0, marginTop: '2px' }} />
-            <div style={{ fontSize: '0.875rem', color: 'var(--color-error)', minWidth: 0, wordBreak: 'break-word' }}>
-              <strong>Review Error:</strong> {errorMessage}
-              {errorDetails && errorDetails.length > 0 && (
-                <ul style={{ marginTop: '6px', paddingLeft: '18px', fontSize: '0.8125rem' }}>
-                  {errorDetails.map((det, idx) => (
-                    <li key={idx}>
-                      <code>{det.field}</code>: {det.message}
-                    </li>
-                  ))}
-                </ul>
-              )}
+        {/* User Account / Role Pill */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {user ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem' }}>
+              <span className="badge badge-neutral" style={{ textTransform: 'capitalize', fontWeight: 600 }}>
+                {user.role} Account: {user.full_name}
+              </span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowAuthModal(true)}
+                style={{ fontSize: '0.75rem', padding: '4px 8px' }}
+              >
+                Switch Account
+              </button>
             </div>
-          </div>
-        )}
-
-        {/* Main Grid: Left (Draft & Findings) + Right (Reference Truth) */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: showReferenceDrawer ? 'minmax(0, 1.4fr) minmax(0, 1fr)' : '1fr',
-          gap: '24px',
-          alignItems: 'start',
-          width: '100%',
-          maxWidth: '100%',
-          minWidth: 0,
-        }} className="workspace-grid">
-          {/* LEFT COLUMN: Draft Editor + Findings List */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
-            {/* Draft Editor Component */}
-            <DraftEditor
-              draftText={draftText}
-              setDraftText={setDraftText}
-              findings={reviewResponse?.findings || []}
-              selectedFindingId={selectedFindingId}
-              onSelectFinding={setSelectedFindingId}
-              isLoading={isLoading}
-              onReview={handleReview}
-            />
-
-            {/* Review Summary Banner if review ran */}
-            {reviewResponse && (
-              <ReviewSummaryBanner response={reviewResponse} />
-            )}
-
-            {/* Findings & Advisory Section */}
-            {reviewResponse && (
-              <div className="card" style={{ padding: '20px' }}>
-                {/* Findings Header & Filter Bar */}
-                <div style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: '12px',
-                  marginBottom: '16px',
-                  paddingBottom: '14px',
-                  borderBottom: '1px solid var(--color-border-subtle)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{
-                      fontSize: '0.8125rem',
-                      fontWeight: 600,
-                      letterSpacing: '0.04em',
-                      textTransform: 'uppercase',
-                      color: 'var(--color-text-primary)',
-                    }}>
-                      Editorial Findings ({filteredFindings.length} of {findings.length})
-                    </span>
-                  </div>
-
-                  {findings.some(f => f.category === 'Terminology' && !dismissedFindingIds.has(f.id)) && (
-                    <button
-                      type="button"
-                      className="btn btn-accent btn-sm"
-                      onClick={handleApplyAllSafe}
-                      title="Apply all safe terminology replacements"
-                    >
-                      <Wand2 size={13} />
-                      <span>Apply All Terminology Suggestions</span>
-                    </button>
-                  )}
-                </div>
-
-                {/* Filter Pills */}
-                <div className="filter-row-container">
-                  <div className="filter-group">
-                    <span className="filter-group-label">Category:</span>
-                    {['All', 'Terminology', 'Tone', 'Claims', 'Accessibility'].map(cat => (
-                      <button
-                        key={cat}
-                        type="button"
-                        onClick={() => setCategoryFilter(cat)}
-                        className={`filter-pill ${categoryFilter === cat ? 'active-cat' : ''}`}
-                      >
-                        {cat}
-                      </button>
-                    ))}
-                  </div>
-
-                  <div className="filter-group">
-                    <span className="filter-group-label">Severity:</span>
-                    {['All', 'High', 'Medium', 'Low'].map(sev => (
-                      <button
-                        key={sev}
-                        type="button"
-                        onClick={() => setSeverityFilter(sev)}
-                        className={`filter-pill ${severityFilter === sev ? 'active-sev' : ''}`}
-                      >
-                        {sev}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Findings List */}
-                {filteredFindings.length === 0 ? (
-                  <div style={{
-                    padding: '36px 20px',
-                    textAlign: 'center',
-                    backgroundColor: 'var(--color-surface-subtle)',
-                    border: '1px dashed var(--color-border)',
-                    borderRadius: 'var(--radius-sm)',
-                  }}>
-                    <CheckCircle2 size={28} color="var(--color-success)" style={{ margin: '0 auto 8px' }} />
-                    <div style={{
-                      fontFamily: 'var(--font-serif)',
-                      fontSize: '1.0625rem',
-                      fontWeight: 600,
-                      color: 'var(--color-text-primary)',
-                      marginBottom: '4px',
-                    }}>
-                      {findings.length === 0
-                        ? 'Draft complies with all active brand guidelines, terms, and facts.'
-                        : 'No findings match the selected filters.'}
-                    </div>
-                    <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
-                      {findings.length === 0
-                        ? 'All statements and lexicon align with your reference truth baseline.'
-                        : 'Try resetting the category or severity filter.'}
-                    </div>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    {filteredFindings.map(finding => (
-                      <FindingCard
-                        key={finding.id}
-                        finding={finding}
-                        isSelected={selectedFindingId === finding.id}
-                        isDismissed={dismissedFindingIds.has(finding.id)}
-                        onSelect={() => setSelectedFindingId(finding.id)}
-                        onApplySuggestion={handleApplySuggestion}
-                        onToggleDismiss={handleToggleDismiss}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* RIGHT COLUMN: Brand Reference Truth Drawer */}
-          {showReferenceDrawer && (
-            <div className="sticky-reference-column" style={{ position: 'sticky', top: '84px', width: '100%', maxWidth: '100%', minWidth: 0 }}>
-              <ReferenceManager
-                guidelines={guidelines}
-                setGuidelines={setGuidelines}
-                terms={terms}
-                setTerms={setTerms}
-                facts={facts}
-                setFacts={setFacts}
-                onLoadBackendSamples={handleLoadBackendSamples}
-                isCustomActive={isCustomActive}
-                onResetToBackendDefault={handleResetToBackendDefault}
-                isLoadingSamples={isLoadingSamples}
-              />
-            </div>
+          ) : (
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setShowAuthModal(true)}
+            >
+              <LogIn size={13} />
+              <span>Sign In / Demo Role</span>
+            </button>
           )}
         </div>
       </div>
 
-      <style>{`
-        @media (max-width: 992px) {
-          .workspace-grid {
-            grid-template-columns: 1fr !important;
-          }
-        }
-      `}</style>
+      {/* Success / Error Messages */}
+      {successMessage && (
+        <div style={{
+          padding: '12px 18px',
+          borderRadius: 'var(--radius-sm)',
+          backgroundColor: '#EBF5EE',
+          border: '1px solid #C4E2CE',
+          color: 'var(--color-success)',
+          fontSize: '0.875rem',
+          marginBottom: '20px',
+        }}>
+          {successMessage}
+        </div>
+      )}
+
+      {errorMessage && (
+        <div style={{
+          padding: '12px 18px',
+          borderRadius: 'var(--radius-sm)',
+          backgroundColor: '#FBEBEA',
+          border: '1px solid #F3C7C4',
+          color: 'var(--color-error)',
+          fontSize: '0.875rem',
+          marginBottom: '20px',
+        }}>
+          {errorMessage}
+        </div>
+      )}
+
+      {/* TAB CONTENT: Guidelines Library */}
+      {activeTab === 'guidelines' && (
+        <BrandGuidelineLibrary />
+      )}
+
+      {/* TAB CONTENT: Reviewer Queue */}
+      {activeTab === 'queue' && (
+        <ReviewerQueue />
+      )}
+
+      {/* TAB CONTENT: Recurring Issues */}
+      {activeTab === 'analytics' && (
+        <RecurringIssuesDashboard />
+      )}
+
+      {/* TAB CONTENT: Accuracy Evaluation */}
+      {activeTab === 'evaluation' && (
+        <EvaluationDashboard />
+      )}
+
+      {/* TAB CONTENT: Draft Studio */}
+      {activeTab === 'studio' && (
+        <div>
+          {/* Header Controls for Studio */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+            marginBottom: '16px',
+            backgroundColor: 'var(--color-surface)',
+            padding: '14px 20px',
+            borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--color-border)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '240px' }}>
+              <input
+                type="text"
+                value={draftTitle}
+                onChange={(e) => setDraftTitle(e.target.value)}
+                placeholder="Draft Title..."
+                style={{
+                  fontFamily: 'var(--font-serif)',
+                  fontSize: '1.15rem',
+                  fontWeight: 600,
+                  border: 'none',
+                  background: 'none',
+                  color: 'var(--color-text-primary)',
+                  width: '100%',
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+              {currentDraftId && (
+                <>
+                  <span className="badge badge-warning" style={{ textTransform: 'capitalize' }}>
+                    {currentDraftStatus}
+                  </span>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-sm"
+                    onClick={() => setShowHistoryModal(true)}
+                  >
+                    <History size={14} />
+                    <span>Rev #{currentRevisionNumber} History</span>
+                  </button>
+                </>
+              )}
+
+              {/* Preset Selector */}
+              <select
+                onChange={(e) => {
+                  const p = PRESETS.find((x) => x.name === e.target.value);
+                  if (p) setDraftText(p.text);
+                }}
+                defaultValue=""
+                style={{
+                  padding: '6px 10px',
+                  borderRadius: 'var(--radius-xs)',
+                  border: '1px solid var(--color-border)',
+                  backgroundColor: 'var(--color-surface)',
+                  fontSize: '0.8125rem',
+                }}
+              >
+                <option value="" disabled>Load Sample Presets...</option>
+                {PRESETS.map((p) => (
+                  <option key={p.name} value={p.name}>{p.name}</option>
+                ))}
+              </select>
+
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={handleSubmitForApproval}
+                disabled={currentDraftStatus === 'submitted' || currentDraftStatus === 'approved'}
+                title="Submit this draft to the reviewer queue"
+              >
+                <Send size={13} />
+                <span>Submit to Reviewer</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Review Summary Banner */}
+          {reviewResponse && (
+            <div style={{ marginBottom: '20px' }}>
+              <ReviewSummaryBanner
+                response={reviewResponse}
+              />
+            </div>
+          )}
+
+          {/* Main Studio 2-Column Grid */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1.2fr) minmax(0, 1fr)',
+            gap: '24px',
+            alignItems: 'start',
+          }}>
+            {/* Left: Draft Editor */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <DraftEditor
+                draftText={draftText}
+                setDraftText={setDraftText}
+                onReview={handleReview}
+                isLoading={isLoading}
+                findings={allFindings}
+                selectedFindingId={selectedFindingId}
+                onSelectFinding={setSelectedFindingId}
+              />
+            </div>
+
+            {/* Right: Findings & Exact Citations Panel */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingBottom: '8px',
+                borderBottom: '1px solid var(--color-border)',
+              }}>
+                <h4 style={{ fontFamily: 'var(--font-serif)', fontSize: '1.15rem', margin: 0 }}>
+                  Findings & Source Citations ({filteredFindings.length})
+                </h4>
+
+                {/* Filters */}
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <select
+                    value={categoryFilter}
+                    onChange={(e) => setCategoryFilter(e.target.value)}
+                    style={{
+                      padding: '4px 8px',
+                      borderRadius: 'var(--radius-xs)',
+                      border: '1px solid var(--color-border)',
+                      fontSize: '0.75rem',
+                    }}
+                  >
+                    <option value="All">All Categories</option>
+                    <option value="Terminology">Terminology</option>
+                    <option value="Tone">Tone</option>
+                    <option value="Claims">Claims</option>
+                    <option value="Accessibility">Accessibility</option>
+                  </select>
+                </div>
+              </div>
+
+              {allFindings.length === 0 ? (
+                <div style={{
+                  border: '1px dashed var(--color-border)',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '36px 20px',
+                  textAlign: 'center',
+                  backgroundColor: 'var(--color-surface)',
+                }}>
+                  <Sparkles size={28} style={{ color: 'var(--color-text-muted)', margin: '0 auto 8px auto' }} />
+                  <p style={{ fontWeight: 500, margin: '0 0 4px 0' }}>Ready for Review</p>
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)', margin: 0 }}>
+                    Click "Run Editorial Review" to reconcile this draft against brand guidelines with exact pgvector citations.
+                  </p>
+                </div>
+              ) : filteredFindings.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--color-text-muted)' }}>
+                  No findings match the current category filter.
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  {filteredFindings.map((finding) => (
+                    <FindingCard
+                      key={finding.id}
+                      finding={finding}
+                      isSelected={selectedFindingId === finding.id}
+                      isDismissed={dismissedFindingIds.has(finding.id)}
+                      onSelect={() => setSelectedFindingId(finding.id)}
+                      onApplySuggestion={handleApplySuggestion}
+                      onToggleDismiss={handleToggleDismiss}
+                    />
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Version History Modal */}
+      {showHistoryModal && currentDraftId && (
+        <DraftVersionHistoryModal
+          draftId={currentDraftId}
+          currentRevisionNumber={currentRevisionNumber}
+          onClose={() => setShowHistoryModal(false)}
+          onRestore={handleRestoreRevision}
+        />
+      )}
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+      />
     </div>
   );
 };
